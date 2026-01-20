@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { SwaggerTheme, SwaggerThemeName } from 'swagger-themes';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
 import { AdvancedFilterPlugin } from './utils/swagger-plugin.util';
 import { initializeTransactionalContext } from 'typeorm-transactional';
 import { config } from 'dotenv';
@@ -16,31 +17,50 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-  const config = new DocumentBuilder()
-    .setTitle('API Documentation')
-    .setDescription('The API description')
+
+  app.use(helmet());
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Microservice API')
+    .setDescription('NestJS Microservices Template API Documentation')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
 
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.enableCors({ credentials: true });
-  app.setGlobalPrefix('api', { exclude: ['health', 'metrics'] });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
+
+  app.setGlobalPrefix('api', {
+    exclude: ['health', 'metrics'],
+  });
 
   const theme = new SwaggerTheme();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup(':v/docs', app, document, {
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('docs', app, document, {
     swaggerOptions: {
       filter: true,
       showRequestDuration: true,
       plugins: [AdvancedFilterPlugin],
     },
     customCss: theme.getBuffer('flattop' as SwaggerThemeName),
-    customSiteTitle: 'Boilerplate Documentation',
+    customSiteTitle: 'Microservice Documentation',
   });
 
-  const port = configService.get('PORT') || 3000;
+  const port = configService.get<number>('PORT') || 3000;
   await app.listen(port);
-  console.log(`Server running on port: ${port}`);
+  console.log(`Server running on http://localhost:${port}`);
+  console.log(`API Documentation: http://localhost:${port}/docs`);
+  console.log(`Health Check: http://localhost:${port}/health`);
+  console.log(`Metrics: http://localhost:${port}/metrics`);
 }
 bootstrap();
