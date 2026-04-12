@@ -39,11 +39,13 @@ export class UsersRepository {
   }
 
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email } });
+    return this.prisma.user.findUnique({ where: { email }, include: { organizations: {select: { id: true}} } });
   }
 
   async findUserRequestForgotPassword(email: string) {
-    return this.prisma.user.findUnique({ where: { email: email, forgotPasswordRequest: true } });
+    return this.prisma.user.findUnique({
+      where: { email: email, forgotPasswordRequest: true },
+    });
   }
 
   async create(data: {
@@ -96,10 +98,10 @@ export class UsersRepository {
   async updateForgotPasswordReq(id: string, hashedPassword: string) {
     return this.prisma.user.update({
       where: { id },
-      data: { 
+      data: {
         password: hashedPassword,
         forgotPasswordRequest: false,
-      }
-    })
+      },
+    });
   }
 }

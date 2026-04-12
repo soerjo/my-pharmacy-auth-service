@@ -11,6 +11,7 @@ import * as bcrypt from 'bcryptjs';
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface.js';
 import type { AuthUser } from '../../common/interfaces/auth-user.interface.js';
 import type { RegisterDto } from './dto/register.dto.js';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -27,7 +28,7 @@ export class AuthService {
   ): Promise<AuthUser | null> {
     const user = await this.usersRepository.findByEmail(email);
     if (user && (await bcrypt.compare(password, user.password))) {
-      return { id: user.id, email: user.email };
+      return { id: user.id, email: user.email, organizationId: user.organizations[0]?.id };
     }
     return null;
   }
@@ -41,6 +42,10 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
+    const existingUser = await this.usersRepository.findByEmail(dto.email);
+    if (existingUser) {
+      throw new BadRequestException('Email already in use');
+    }
     const hashedPassword = await bcrypt.hash(dto.password, 10);
     const user = await this.usersRepository.create({
       email: dto.email,
@@ -59,7 +64,7 @@ export class AuthService {
     firstName: string,
     lastName: string,
   ): Promise<AuthUser> {
-    let user = await this.usersRepository.findByEmail(email);
+    let user: User = await this.usersRepository.findByEmail(email) as User;
     if (!user) {
       user = await this.usersRepository.create({
         email,
@@ -175,7 +180,9 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Invalid or expired reset token');
     }
-    const user = await this.usersRepository.findUserRequestForgotPassword(payload.email);
+    const user = await this.usersRepository.findUserRequestForgotPassword(
+      payload.email,
+    );
     if (!user) {
       throw new UnauthorizedException('User not request forgot password');
     }
