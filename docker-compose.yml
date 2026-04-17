@@ -7,10 +7,10 @@ services:
     container_name: my-pharmacy-auth-service
     restart: unless-stopped
     ports:
-      - '${PORT:-3000}:3000'
+      - '3000:3000'
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - PORT=${PORT:-3000}
+      - PORT=3000
       - DATABASE_URL=${DATABASE_URL}
       - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
@@ -38,9 +38,9 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
-    networks:
-      - internal_net
+#     networks:
+#       - internal_net
 
-networks:
-  internal_net:
-    external: true
+# networks:
+#   internal_net:
+#     external: true
