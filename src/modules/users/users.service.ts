@@ -12,7 +12,15 @@ export class UsersService {
   }
 
   async findById(id: string) {
-    return this.usersRepository.findById(id);
+    const user = await this.usersRepository.findById(id);
+    return {
+      id: user.id,
+      email: user.email,
+      userName: user.firstName + ' ' + user.lastName,
+      organizationName: user.organization.name,
+      role: user.role,
+      organizationId: user.organization.id
+    }
   }
 
   async create(dto: CreateUserDto) {

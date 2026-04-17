@@ -29,6 +29,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const email = profile.emails[0].value;
     const firstName = profile.name.givenName;
     const lastName = profile.name.familyName;
-    return this.authService.validateGoogleUser(email, firstName, lastName);
+    return this.authService.validateGoogleUser(
+      email,
+      firstName,
+      lastName,
+      '4d977551-a23f-414e-9b92-d38ec3c1e1f6',
+      '4d977551-a23f-414e-9b92-d38ec3c1e1f6',
+    );
   }
 }

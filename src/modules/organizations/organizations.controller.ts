@@ -21,13 +21,15 @@ export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
   @Get()
-  @Roles('ADMIN')
+  @Public()
+  // @Roles('ADMIN')
   async findAll() {
     return this.organizationsService.findAll();
   }
 
   @Get(':id')
-  @Roles('ADMIN')
+  @Public()
+  // @Roles('ADMIN')
   async findOne(@Param('id') id: string) {
     return this.organizationsService.findById(id);
   }

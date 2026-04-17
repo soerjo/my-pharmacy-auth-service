@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MinLength,
 } from 'class-validator';
 
@@ -27,4 +28,14 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   lastName?: string;
+
+  @ApiProperty({ example: 'uuid-of-organization' })
+  @IsUUID()
+  @IsNotEmpty()
+  organizationId: string;
+
+  @ApiProperty({ example: 'uuid-of-role' })
+  @IsUUID()
+  @IsNotEmpty()
+  roleId: string;
 }

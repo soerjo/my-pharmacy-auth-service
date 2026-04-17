@@ -1,5 +1,10 @@
+import { $Enums } from '@prisma/client';
+
 export interface AuthUser {
   id: string;
   email: string;
-  organizationId?: string;
+  firstName: string | null;
+  lastName: string | null;
+  role: $Enums.RoleName;
+  organizationId: string;
 }

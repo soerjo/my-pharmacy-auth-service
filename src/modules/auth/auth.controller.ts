@@ -19,6 +19,7 @@ import { SetPasswordDto } from './dto/set-password.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
+import { RefreshTokenDto } from './dto/refresh-token.dto.js';
 import { LocalAuthGuard } from './local-auth.guard.js';
 import { GoogleAuthGuard } from './google-auth.guard.js';
 import { Public } from '../../common/decorators/public.decorator.js';
@@ -63,13 +64,14 @@ export class AuthController {
   @Get('verify-token')
   @HttpCode(HttpStatus.OK)
   verifyToken(@CurrentUser() user: AuthUser) {
-    return { valid: true, user: { id: user.id, email: user.email } };
+    return { valid: true, user: { ...user } };
   }
 
-  @Post('refresh')
+  @Public()
+  @Post('refresh-token')
   @HttpCode(HttpStatus.OK)
-  refresh(@CurrentUser() user: AuthUser) {
-    return this.authService.login(user);
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshTokens(dto.refreshToken);
   }
 
   @Post('set-password')

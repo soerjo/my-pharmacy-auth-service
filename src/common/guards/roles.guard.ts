@@ -23,14 +23,14 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
-    const userOrganizations = await this.prisma.userOrganization.findMany({
-      where: { userId: user.id },
-      include: {
-        role: true,
-      },
+    const userData = await this.prisma.user.findUnique({
+      where: { id: user.id },
     });
 
-    const userRoles = userOrganizations.map((uo) => uo.role.name);
-    return requiredRoles.some((role) => userRoles.includes(role));
+    if (!userData || !userData.role) {
+      return false;
+    }
+
+    return requiredRoles.some((role) => role === userData.role);
   }
 }

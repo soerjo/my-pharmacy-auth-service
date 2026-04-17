@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum RoleName {
+  SYSTEM
+  ADMIN
+  USER
+}
+
 model User {
   id                    String   @id @default(uuid())
   email                 String   @unique
@@ -15,53 +21,25 @@ model User {
   lastName              String?
   isActive              Boolean  @default(true)
   forgotPasswordRequest Boolean  @default(false)
+  role                  RoleName @default(USER)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  organizationId        String
 
-  organizations UserOrganization[]
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("users")
-}
-
-model Role {
-  id             String   @id @default(uuid())
-  name           String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  organizations UserOrganization[]
-
-  @@unique([name])
-  @@map("roles")
 }
 
 model Organization {
   id          String   @id @default(uuid())
   name        String
   slug        String   @unique
-  description String?
-  website     String?
   logoUrl     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  userOrganizations UserOrganization[]
+  users       User[]
 
   @@map("organizations")
-}
-
-model UserOrganization {
-  id             String   @id @default(uuid())
-  userId         String
-  organizationId String
-  roleId         String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  role         Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, organizationId])
-  @@map("user_organizations")
 }

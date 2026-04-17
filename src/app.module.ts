@@ -7,8 +7,6 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { OrganizationsModule } from './modules/organizations/organizations.module.js';
-import { RolesModule } from './modules/roles/roles.module.js';
-import { UserOrganizationsModule } from './modules/user-organizations/user-organizations.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { EmailModule } from './modules/email/email.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
@@ -25,8 +23,6 @@ import { validate } from './config/env.validation.js';
     AuthModule,
     UsersModule,
     OrganizationsModule,
-    RolesModule,
-    UserOrganizationsModule,
     HealthModule,
     EmailModule,
   ],

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { $Enums, Prisma, User } from '@prisma/client';
 
 @Injectable()
 export class UsersRepository {
@@ -22,15 +23,9 @@ export class UsersRepository {
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      include: {
+        organization: {select: { id: true, name: true }},
+      }
     });
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
@@ -39,7 +34,9 @@ export class UsersRepository {
   }
 
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email }, include: { organizations: {select: { id: true}} } });
+    return this.prisma.user.findUnique({
+      where: { email },
+    });
   }
 
   async findUserRequestForgotPassword(email: string) {
@@ -48,12 +45,9 @@ export class UsersRepository {
     });
   }
 
-  async create(data: {
-    email: string;
-    password: string;
-    firstName?: string;
-    lastName?: string;
-  }) {
+  async create(
+    data: Prisma.XOR<Prisma.UserCreateInput, Prisma.UserUncheckedCreateInput>,
+  ) {
     return this.prisma.user.create({ data });
   }
 

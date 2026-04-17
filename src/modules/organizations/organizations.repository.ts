@@ -1,32 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-const userOrgSelect = {
-  userOrganizations: {
-    select: {
-      id: true,
-      userId: true,
-      roleId: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  },
-} as const;
-
 @Injectable()
 export class OrganizationsRepository {
   constructor(private prisma: PrismaService) {}
 
   async findAll() {
-    return this.prisma.organization.findMany({
-      include: userOrgSelect,
-    });
+    return this.prisma.organization.findMany({});
   }
 
   async findBySlug(slug: string) {
     const organization = await this.prisma.organization.findUnique({
       where: { slug },
-      include: userOrgSelect,
     });
     if (!organization) {
       throw new NotFoundException(`Organization with slug ${slug} not found`);
@@ -37,7 +22,6 @@ export class OrganizationsRepository {
   async findById(id: string) {
     const organization = await this.prisma.organization.findUnique({
       where: { id },
-      include: userOrgSelect,
     });
     if (!organization) {
       throw new NotFoundException(`Organization with id ${id} not found`);
@@ -54,7 +38,6 @@ export class OrganizationsRepository {
   }) {
     return this.prisma.organization.create({
       data,
-      include: userOrgSelect,
     });
   }
 
@@ -63,7 +46,6 @@ export class OrganizationsRepository {
     return this.prisma.organization.update({
       where: { id },
       data,
-      include: userOrgSelect,
     });
   }
 
