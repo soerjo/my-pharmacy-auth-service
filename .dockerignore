@@ -1,5 +1,7 @@
 node_modules
 dist
+bun.lock
+bunfig.json
 .env
 .env.local
 .env.*.local
@@ -30,6 +32,4 @@ Dockerfile*
 docker-compose*.yml
 .gitignore
 vercel.json
-nest-cli.json
-tsconfig*.json
 jest.config.js
