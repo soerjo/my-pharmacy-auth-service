@@ -40,3 +40,7 @@ services:
         max-file: '3'
     networks:
       - internal_net
+
+networks:
+  internal_net:
+    external: true
