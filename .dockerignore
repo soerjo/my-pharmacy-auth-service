@@ -21,3 +21,15 @@ coverage
 ~
 .*
 !.dockerignore
+test
+*.md
+.eslintrc.js
+eslint.config.mjs
+prettier*
+Dockerfile*
+docker-compose*.yml
+.gitignore
+vercel.json
+nest-cli.json
+tsconfig*.json
+jest.config.js
