@@ -220,8 +220,7 @@ export class AuthService {
       expiresIn: '1h',
     });
 
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
     const resetUrl = `${frontendUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
 
     await this.emailService.sendMail({
@@ -231,9 +230,8 @@ export class AuthService {
       context: { resetUrl },
     });
 
-    await this.usersRepository.update(user.id, { forgotPasswordRequest: true });
+    await this.usersRepository.updateHandleForgotPasswordReq(user.id, resetUrl);
 
-    // return { message: 'If the email exists, a reset link will be sent' };
     return {
       to: email,
       subject: 'Reset your password',
@@ -258,7 +256,7 @@ export class AuthService {
       throw new UnauthorizedException('User not request forgot password');
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await this.usersRepository.updateForgotPasswordReq(user.id, hashedPassword);
+    await this.usersRepository.updateResetPasswordReq(user.id, hashedPassword);
     return { message: 'Password reset successfully' };
   }
 }

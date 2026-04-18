@@ -20,7 +20,7 @@ model User {
   firstName             String?
   lastName              String?
   isActive              Boolean  @default(true)
-  forgotPasswordRequest Boolean  @default(false)
+  forgotPasswordUrl     String?
   role                  RoleName @default(USER)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
