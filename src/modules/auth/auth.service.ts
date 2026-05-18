@@ -9,9 +9,9 @@ import { UsersRepository } from '../users/users.repository.js';
 import { EmailService } from '../email/email.service.js';
 import * as bcrypt from 'bcryptjs';
 // import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface.js';
+
 import type { AuthUser } from '../../common/interfaces/auth-user.interface.js';
 import type { RegisterDto } from './dto/register.dto.js';
-import { $Enums, User } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 @Injectable()
@@ -30,14 +30,16 @@ export class AuthService {
   ): Promise<AuthUser | null> {
     const user = await this.usersRepository.findByEmail(email);
     if (user && (await bcrypt.compare(password, user.password))) {
-      // const { password, ...result } = user;
+      const permissions = await this.getPermissionsByRole(user.roleId);
       return {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role,
+        roleId: user.roleId,
+        role: user.role.name,
         organizationId: user.organizationId,
+        permissions,
       };
     }
 
@@ -48,13 +50,16 @@ export class AuthService {
     const user = await this.usersRepository.findById(id);
     if (!user) return null;
 
+    const permissions = await this.getPermissionsByRole(user.roleId);
     return {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      roleId: user.roleId,
+      role: user.role.name,
       organizationId: user.organizationId,
+      permissions,
     };
   }
 
@@ -64,6 +69,10 @@ export class AuthService {
       throw new BadRequestException('Email already in use');
     }
     const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+    const adminRole = await this.prisma.role.findUniqueOrThrow({
+      where: { name: 'ADMIN' },
+    });
 
     const user = await this.prisma.$transaction(async (tx) => {
       const organization = await tx.organization.create({
@@ -80,7 +89,7 @@ export class AuthService {
           firstName: dto.firstName ?? '',
           lastName: dto.lastName ?? '',
           organizationId: organization.id,
-          role: $Enums.RoleName.ADMIN,
+          roleId: adminRole.id,
         },
       });
     });
@@ -95,45 +104,64 @@ export class AuthService {
     firstName: string,
     lastName: string,
     organizationId: string,
-    roleId: string,
   ): Promise<AuthUser> {
-    let user: User = (await this.usersRepository.findByEmail(email)) as User;
+    let user = await this.usersRepository.findByEmail(email);
     if (!user) {
-      user = await this.usersRepository.create({
+      const userRole = await this.prisma.role.findUniqueOrThrow({
+        where: { name: 'USER' },
+      });
+      await this.usersRepository.create({
         email,
         password: '',
         firstName,
         lastName,
         organizationId,
-        // roleId,
+        roleId: userRole.id,
       });
+      user = (await this.usersRepository.findByEmail(email)) as NonNullable<
+        typeof user
+      >;
     }
+    const permissions = await this.getPermissionsByRole(user.roleId);
     return {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      roleId: user.roleId,
+      role: user.role.name,
       organizationId: user.organizationId,
+      permissions,
     };
   }
 
   login(payload: AuthUser) {
+    const JWT_REFRESH_SECRET =
+      this.configService.get<string>('JWT_REFRESH_SECRET');
+    const JWT_REFRESH_EXPIRATION = this.configService.get<number>(
+      'JWT_REFRESH_EXPIRATION',
+    );
+
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: JWT_REFRESH_SECRET,
+      expiresIn: JWT_REFRESH_EXPIRATION,
+      algorithm: 'HS256',
+    });
+
     return {
-      accessToken: this.jwtService.sign(payload),
-      refreshToken: this.jwtService.sign(payload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET')!,
-        expiresIn:
-          Number(
-            this.configService
-              .get<string>('JWT_REFRESH_EXPIRATION')!
-              .replace(/\D/g, '') as unknown as number,
-          ) *
-          60 *
-          60 *
-          24,
-      }),
+      accessToken,
+      refreshToken,
+      user: payload,
     };
+  }
+
+  async getPermissionsByRole(roleId: string): Promise<string[]> {
+    const rolePermissions = await this.prisma.rolePermission.findMany({
+      where: { roleId },
+      include: { permission: { select: { name: true } } },
+    });
+    return rolePermissions.map((rp) => rp.permission.name);
   }
 
   async refreshTokens(refreshToken: string) {
@@ -156,8 +184,10 @@ export class AuthService {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      roleId: user.roleId,
+      role: user.role.name,
       organizationId: user.organizationId,
+      permissions: [],
     };
 
     return this.login(authUser);
@@ -212,15 +242,18 @@ export class AuthService {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      roleId: user.roleId,
+      role: user.role.name,
       organizationId: user.organizationId,
+      permissions: [],
     };
     const resetToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET')!,
       expiresIn: '1h',
     });
 
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
     const resetUrl = `${frontendUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
 
     await this.emailService.sendMail({

@@ -2,13 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { OrganizationsRepository } from './organizations.repository.js';
 import { CreateOrganizationDto } from './dto/create-organization.dto.js';
 import { UpdateOrganizationDto } from './dto/update-organization.dto.js';
+import { PaginationDto } from '../../common/dto/pagination.dto.js';
 
 @Injectable()
 export class OrganizationsService {
   constructor(private organizationsRepository: OrganizationsRepository) {}
 
-  async findAll() {
-    return this.organizationsRepository.findAll();
+  async findAll(pagination?: PaginationDto) {
+    return this.organizationsRepository.findAll(pagination);
   }
 
   async findBySlug(slug: string) {

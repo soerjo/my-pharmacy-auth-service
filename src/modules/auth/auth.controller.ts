@@ -64,7 +64,7 @@ export class AuthController {
   @Get('verify-token')
   @HttpCode(HttpStatus.OK)
   verifyToken(@CurrentUser() user: AuthUser) {
-    return { valid: true, user: { ...user } };
+    return { valid: true, user: { ...user }, permissions: user.permissions };
   }
 
   @Public()
