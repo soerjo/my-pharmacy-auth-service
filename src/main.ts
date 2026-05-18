@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor.js';
@@ -15,7 +16,6 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      // forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
     }),
@@ -33,13 +33,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
-  import helmet from 'helmet';
-  // Security middlewares
   app.use(helmet());
-  // Enable CORS with whitelist (fallback to * if not set)
-  const allowedOrigins = process.env.CORS_ORIGIN?.split(',') ?? ['*'];
-  app.enableCors({ origin: allowedOrigins, credentials: true });
+  app.enableCors({ origin: '*', credentials: true });
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+void bootstrap();

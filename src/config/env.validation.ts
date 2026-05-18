@@ -2,6 +2,7 @@ import { plainToInstance } from 'class-transformer';
 import {
   IsEnum,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsPort,
   IsString,
@@ -27,27 +28,39 @@ class EnvironmentVariables {
   DATABASE_URL!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
+  // @IsNotEmpty()
   JWT_ACCESS_SECRET!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
+  // @IsNotEmpty()
   JWT_REFRESH_SECRET!: string;
 
   @IsString()
   @IsOptional()
-  JWT_ACCESS_EXPIRATION: string = '15m';
+  JWT_PRIVATE_KEY!: string;
 
   @IsString()
   @IsOptional()
-  JWT_REFRESH_EXPIRATION: string = '7d';
+  JWT_PUBLIC_KEY!: string;
+
+  @IsNumber()
+  @IsOptional()
+  JWT_ACCESS_EXPIRATION: number = 3600;
+
+  @IsNumber()
+  @IsOptional()
+  JWT_REFRESH_EXPIRATION: number = 700;
 
   @IsString()
-  @IsNotEmpty()
+  // @IsNotEmpty()
+  @IsOptional()
   GOOGLE_CLIENT_ID!: string;
 
   @IsString()
-  @IsNotEmpty()
+  // @IsNotEmpty()
+  @IsOptional()
   GOOGLE_CLIENT_SECRET!: string;
 
   @IsString()

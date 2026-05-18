@@ -1,31 +1,45 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
 const prisma = new PrismaClient();
 
 async function main() {
+  // ---- Roles ----
+  const roles = [
+    { name: 'SYSTEM', description: 'System super-admin' },
+    { name: 'ADMIN', description: 'Organization administrator' },
+    { name: 'USER', description: 'Regular user' },
+  ];
+
+  for (const r of roles) {
+    await prisma.role.upsert({
+      where: { name: r.name },
+      update: { description: r.description },
+      create: r,
+    });
+  }
+
   // ---- Permissions ----
   const permissions = [
     { name: 'user:create', description: 'Create new users' },
-    { name: 'user:read',   description: 'Read user data' },
+    { name: 'user:read', description: 'Read user data' },
     { name: 'user:update', description: 'Update user data' },
     { name: 'user:delete', description: 'Delete user' },
 
     { name: 'org:create', description: 'Create organization' },
-    { name: 'org:read',   description: 'Read organization data' },
+    { name: 'org:read', description: 'Read organization data' },
     { name: 'org:update', description: 'Update organization' },
     { name: 'org:delete', description: 'Delete organization' },
 
     { name: 'role:manage', description: 'Manage roles & permissions' },
+    { name: 'permission:manage', description: 'Manage permissions' },
 
-    // Front‑end relevant
     { name: 'warehouse:read', description: 'Read warehouse data' },
-    { name: 'depo:read',      description: 'Read depo data' },
-    { name: 'auth:login',     description: 'Login / refresh token' },
+    { name: 'depo:read', description: 'Read depo data' },
+    { name: 'auth:login', description: 'Login / refresh token' },
   ];
 
-  // upsert permissions
   for (const p of permissions) {
     await prisma.permission.upsert({
       where: { name: p.name },
@@ -35,47 +49,48 @@ async function main() {
   }
 
   // ---- RolePermission mapping ----
-  const rolePermissions = [
-    // ADMIN gets **all** permissions
-    ...permissions.map(p => ({
-      role: 'ADMIN',
-      permissionName: p.name,
-    })),
-    // USER gets a minimal read‑only set + login
-    { role: 'USER', permissionName: 'auth:login' },
-    { role: 'USER', permissionName: 'user:read' },
-    { role: 'USER', permissionName: 'warehouse:read' },
-    { role: 'USER', permissionName: 'depo:read' },
+  const mappings: { roleName: string; permissionName: string }[] = [
+    // SYSTEM gets all permissions
+    ...permissions.map((p) => ({ roleName: 'SYSTEM', permissionName: p.name })),
+    // ADMIN gets all permissions
+    ...permissions.map((p) => ({ roleName: 'ADMIN', permissionName: p.name })),
+    // USER gets a minimal read-only set + login
+    { roleName: 'USER', permissionName: 'auth:login' },
+    { roleName: 'USER', permissionName: 'user:read' },
+    { roleName: 'USER', permissionName: 'warehouse:read' },
+    { roleName: 'USER', permissionName: 'depo:read' },
   ];
 
-  for (const rp of rolePermissions) {
+  for (const m of mappings) {
+    const role = await prisma.role.findUnique({ where: { name: m.roleName } });
     const perm = await prisma.permission.findUnique({
-      where: { name: rp.permissionName },
+      where: { name: m.permissionName },
     });
-    if (perm) {
+    if (role && perm) {
       await prisma.rolePermission.upsert({
         where: {
-          role_permissionId: {
-            role: rp.role,
+          roleId_permissionId: {
+            roleId: role.id,
             permissionId: perm.id,
           },
         },
         update: {},
         create: {
-          role: rp.role,
+          roleId: role.id,
           permissionId: perm.id,
         },
       });
     }
   }
 
-  console.log('\u2705 Seed selesai – permissions & role‑mapping ter‑buat.');
+  console.log(
+    '\u2705 Seed selesai \u2013 roles, permissions & role-permission mapping ter-buat.',
+  );
 }
 
 main()
-  .catch(e => {
+  .catch((e) => {
     console.error(e);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());
-
