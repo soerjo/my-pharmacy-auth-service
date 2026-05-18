@@ -33,7 +33,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
-  app.enableCors();
+  import helmet from 'helmet';
+  // Security middlewares
+  app.use(helmet());
+  // Enable CORS with whitelist (fallback to * if not set)
+  const allowedOrigins = process.env.CORS_ORIGIN?.split(',') ?? ['*'];
+  app.enableCors({ origin: allowedOrigins, credentials: true });
 
   await app.listen(process.env.PORT ?? 3000);
 }

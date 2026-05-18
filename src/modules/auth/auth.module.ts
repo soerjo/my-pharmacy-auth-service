@@ -17,14 +17,14 @@ import { UsersModule } from '../users/users.module.js';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_ACCESS_SECRET')!,
+        privateKey: configService.get<string>('JWT_PRIVATE_KEY')!,
+        publicKey: configService.get<string>('JWT_PUBLIC_KEY')!,
         signOptions: {
-          expiresIn: 
-            Number(
-              configService
-                .get<string>('JWT_ACCESS_EXPIRATION')!
-                .replace(/\D/g, '') as unknown as number,
-            ) * 60, // in second
+          expiresIn: Number(configService.get<string>('JWT_ACCESS_EXPIRATION')!.replace(/\D/g, '')),
+          algorithm: 'ES256',
+        },
+        verifyOptions: {
+          algorithms: ['ES256'],
         },
       }),
     }),

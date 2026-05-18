@@ -7,10 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
 enum RoleName {
   SYSTEM
   ADMIN
   USER
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  role          RoleName
+  permissionId  String
+  permission    Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([role, permissionId])
 }
 
 model User {
