@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { OrganizationsService } from './organizations.service.js';
@@ -13,6 +14,7 @@ import { CreateOrganizationDto } from './dto/create-organization.dto.js';
 import { UpdateOrganizationDto } from './dto/update-organization.dto.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
+import { PaginationDto } from '../../common/dto/pagination.dto.js';
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -23,8 +25,8 @@ export class OrganizationsController {
   @Get()
   @Public()
   // @Roles('ADMIN')
-  async findAll() {
-    return this.organizationsService.findAll();
+  async findAll(@Query() pagination: PaginationDto) {
+    return this.organizationsService.findAll(pagination);
   }
 
   @Get(':id')

@@ -1,31 +1,48 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { $Enums, Prisma, User } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { PaginationDto } from '../../common/dto/pagination.dto.js';
+import type { PaginatedResult } from '../../common/interfaces/paginated-result.interface.js';
 
 @Injectable()
 export class UsersRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
-    return this.prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+  async findAll(pagination?: PaginationDto): Promise<PaginatedResult<unknown>> {
+    const page = pagination?.page ?? 1;
+    const limit = pagination?.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        skip,
+        take: limit,
+        // select: {
+        //   id: true,
+        //   email: true,
+        //   firstName: true,
+        //   lastName: true,
+        //   isActive: true,
+        //   createdAt: true,
+        //   updatedAt: true,
+        // },
+      }),
+      this.prisma.user.count(),
+    ]);
+
+    return {
+      data,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
-        organization: {select: { id: true, name: true }},
-      }
+        organization: { select: { id: true, name: true } },
+        role: { select: { id: true, name: true } },
+      },
     });
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
@@ -35,7 +52,8 @@ export class UsersRepository {
 
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
-      where: { email },
+      where: { email, isActive: true },
+      include: { role: { select: { id: true, name: true } } },
     });
   }
 
@@ -70,7 +88,19 @@ export class UsersRepository {
 
   async remove(id: string) {
     await this.findById(id);
-    return this.prisma.user.delete({ where: { id } });
+    return this.prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 
   async updatePassword(id: string, hashedPassword: string) {
@@ -108,4 +138,11 @@ export class UsersRepository {
     });
   }
 
+  async findPermissionsByRole(roleId: string): Promise<string[]> {
+    const rolePermissions = await this.prisma.rolePermission.findMany({
+      where: { roleId },
+      include: { permission: { select: { name: true } } },
+    });
+    return rolePermissions.map((rp) => rp.permission.name);
+  }
 }
