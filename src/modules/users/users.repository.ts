@@ -3,31 +3,42 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { Prisma } from '@prisma/client';
 import { PaginationDto } from '../../common/dto/pagination.dto.js';
 import type { PaginatedResult } from '../../common/interfaces/paginated-result.interface.js';
+import type { UserWithOrgRole } from './user-with-org-role.interface.js';
 
 @Injectable()
 export class UsersRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(pagination?: PaginationDto): Promise<PaginatedResult<unknown>> {
+  async findAll(
+    pagination?: PaginationDto,
+    organizationId?: string,
+  ): Promise<PaginatedResult<UserWithOrgRole>> {
     const page = pagination?.page ?? 1;
     const limit = pagination?.limit ?? 10;
     const skip = (page - 1) * limit;
 
+    const where = organizationId ? { organizationId } : {};
+
     const [data, total] = await Promise.all([
       this.prisma.user.findMany({
+        where,
         skip,
         take: limit,
-        // select: {
-        //   id: true,
-        //   email: true,
-        //   firstName: true,
-        //   lastName: true,
-        //   isActive: true,
-        //   createdAt: true,
-        //   updatedAt: true,
-        // },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          isActive: true,
+          organizationId: true,
+          roleId: true,
+          createdAt: true,
+          updatedAt: true,
+          organization: { select: { id: true, name: true } },
+          role: { select: { id: true, name: true } },
+        },
       }),
-      this.prisma.user.count(),
+      this.prisma.user.count({ where }),
     ]);
 
     return {
