@@ -1,3 +1,4 @@
+import './otel/instrumentation.js';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
