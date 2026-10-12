@@ -15,7 +15,6 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { loggerConfig } from './config/logger.config.js';
 import { validate } from './config/env.validation.js';
-import { OtelModule } from './otel/otel.module.js';
 
 @Module({
   imports: [
@@ -30,7 +29,6 @@ import { OtelModule } from './otel/otel.module.js';
     EmailModule,
     RolesModule,
     PermissionsModule,
-    OtelModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
