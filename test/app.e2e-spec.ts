@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
+process.env.JWT_ACCESS_SECRET = 'test-secret';
+process.env.JWT_ACCESS_EXPIRATION = '3600';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module.js';
-import { validate } from '../src/config/env.validation.js';
+import { AppModule } from './../src/app.module';
+import { validate } from '../src/config/env.validation';
 
 describe('App (e2e)', () => {
   let app: INestApplication<App>;
