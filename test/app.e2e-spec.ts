@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+process.env.JWT_ACCESS_SECRET = "test-secret"; process.env.JWT_ACCESS_EXPIRATION = "3600";
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import request from 'supertest';
