@@ -23,6 +23,10 @@ services:
       - SMTP_PASS=${SMTP_PASS:-}
       - SMTP_FROM=${SMTP_FROM:-}
       - FRONTEND_URL=${FRONTEND_URL:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-my-pharmacy-auth-service}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_PAYLOAD_ENABLED=${LOG_PAYLOAD_ENABLED:-true}
     deploy:
       resources:
         limits:
