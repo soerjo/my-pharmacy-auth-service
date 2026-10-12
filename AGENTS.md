@@ -200,3 +200,72 @@ All business modules follow a 3-layer pattern:
 - **No helmet middleware** — no security headers configured
 - **CORS allows all origins** — security concern for production
 - **Role scoping issue** — roles are global (unique name), not per-organization, despite the junction table design
+
+## Implementation Checklist
+
+Observability pilot. All steps pending.
+
+### 1. Pino JSON logger (replace Winston)
+
+- [ ] Add `pino` + `nestjs-pino` (and `pino-http`) dependencies.
+- [ ] Replace `src/config/logger.config.ts` Winston config with Pino JSON config (structured fields: `level`, `time`, `service`, `msg`).
+- [ ] Remove/replace `WinstonModule.forRoot(...)` in `src/app.module.ts` with Pino logger module (`LoggerModule.forRoot(...)`).
+- [ ] Update `src/main.ts` to use `Logger` from `nestjs-pino` instead of `WINSTON_MODULE_NEST_PROVIDER`.
+- [ ] Disable pretty-printing/colors in production; JSON only.
+- [ ] Remove `nest-winston` and `winston` deps once fully replaced.
+
+### 2. Request logging + redaction + skip large/binary + interceptor registration
+
+- [ ] Add `RequestLoggingInterceptor` (e.g. `src/common/interceptors/request-logging.interceptor.ts`).
+- [ ] Log structured fields: `timestamp`, `requestId`, `service`, `method`, `path`, `statusCode`, `latency_ms`, `requestPayload`, `redactedPayload`.
+- [ ] Compute latency with a monotonic timer (`process.hrtime.bigint()`).
+- [ ] Recursively redact (case-insensitive) fields/headers: `password`, `token`, `authorization`, `secret`.
+- [ ] Mask `email` (e.g. `j***@domain`) and credit card (last 4 digits only).
+- [ ] Skip request payload logging when serialized size > 8 KB.
+- [ ] Skip payload logging for binary/multipart/file/stream/octet-stream content types.
+- [ ] Do not mutate `req.body` during redaction.
+- [ ] Sanitize query string / use normalized path to avoid logging tokens.
+- [ ] Register interceptor globally in `src/main.ts` alongside `ResponseTransformInterceptor` with correct ordering.
+
+### 3. Response logging + requestId propagation + X-Request-Id header
+
+- [ ] Add request-id middleware/hook running before guards and interceptors.
+- [ ] Use incoming `X-Request-Id` when valid; otherwise generate a UUID.
+- [ ] Validate header length/format to prevent log injection.
+- [ ] Set `X-Request-Id` on every response.
+- [ ] Propagate `requestId` via `AsyncLocalStorage` (or pino-http context) — no global mutable state.
+- [ ] Make `requestId` available to the interceptor, `AllExceptionsFilter`, and OTel spans.
+- [ ] Include `requestId` in exception logs.
+
+### 4. OTel SDK setup + env-based endpoint/service name + graceful shutdown
+
+- [ ] Add OTel deps: `@opentelemetry/sdk-node`, OTLP HTTP exporter, `@opentelemetry/auto-instrumentations-node`, `@prisma/instrumentation`.
+- [ ] Add `src/instrumentation.ts` loaded before Nest bootstrap (`src/main.ts`).
+- [ ] Read `OTEL_EXPORTER_OTLP_ENDPOINT`, default `http://otel-collector:4318` (do not hardcode other endpoints).
+- [ ] Read `OTEL_SERVICE_NAME`, default `my-pharmacy-auth-service`.
+- [ ] Avoid double instrumentation for HTTP/Express/Nest.
+- [ ] Graceful shutdown: flush OTel provider on SIGTERM/SIGINT.
+- [ ] Add OTel env vars to `src/config/env.validation.ts` with defaults.
+- [ ] Document vars in `.env.example` and forward them in `docker-compose.yml`.
+
+### 5. Prisma query log (structured `{query, params redacted, duration_ms}`)
+
+- [ ] Enable Prisma event logging (`query`, `error`, `warn`) in `PrismaService`.
+- [ ] Log structured `{ query, params (redacted), duration_ms }`.
+- [ ] Redact sensitive params (password/token/email/secret) before logging.
+- [ ] Attach `requestId` when context is available.
+- [ ] Wire Prisma OTel instrumentation so queries produce child spans.
+- [ ] Verify no excessive duplication between Prisma event logs and OTel spans.
+- [ ] Consider sampling/log level to cap query-log volume.
+
+### Verification (run after implementation)
+
+- [ ] `npm run build` passes.
+- [ ] `npx tsc --noEmit` passes.
+- [ ] `npm run lint` passes.
+- [ ] `npm run test` passes.
+- [ ] `npm run test:e2e` passes.
+- [ ] Adds/updates E2E setup to apply runtime middleware/interceptor/filter.
+- [ ] Logs are one JSON object per line.
+- [ ] `X-Request-Id` echoed/generated and returned.
+- [ ] No raw credentials/PII in stdout or trace attributes.

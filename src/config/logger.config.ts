@@ -1,19 +1,16 @@
-import {
-  utilities as nestWinstonModuleUtilities,
-  WinstonModuleOptions,
-} from 'nest-winston';
-import * as winston from 'winston';
+import type { LevelWithSilent } from 'pino';
+import type { Params } from 'nestjs-pino';
 
-export const loggerConfig: WinstonModuleOptions = {
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        nestWinstonModuleUtilities.format.nestLike('API', {
-          colors: true,
-          prettyPrint: true,
-        }),
-      ),
-    }),
-  ],
+export const loggerConfig: Params = {
+  pinoHttp: {
+    level: (process.env.LOG_LEVEL as LevelWithSilent) ?? 'info',
+    autoLogging: false,
+    base: {
+      service: process.env.OTEL_SERVICE_NAME ?? 'my-pharmacy-auth-service',
+    },
+    formatters: {
+      level: (label) => ({ level: label }),
+    },
+    timestamp: () => `,"time":"${new Date().toISOString()}"`,
+  },
 };

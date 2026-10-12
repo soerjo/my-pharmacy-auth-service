@@ -1,16 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor.js';
+import { RequestLoggingInterceptor } from './common/interceptors/request-logging.interceptor.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
-  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
+  app.useLogger(app.get(Logger));
   app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
@@ -22,7 +24,10 @@ async function bootstrap() {
   );
 
   app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalInterceptors(new ResponseTransformInterceptor());
+  app.useGlobalInterceptors(
+    new ResponseTransformInterceptor(),
+    new RequestLoggingInterceptor(app.get(Reflector), app.get(Logger)),
+  );
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('API')
