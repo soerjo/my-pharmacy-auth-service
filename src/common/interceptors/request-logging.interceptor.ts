@@ -1,4 +1,4 @@
-import { Logger, PinoLogger } from 'nestjs-pino';
+import { PinoLogger } from 'nestjs-pino';
 
 import {
   Injectable,
@@ -19,7 +19,10 @@ export interface RequestWithId extends Request {
 const SENSITIVE_FIELDS = ['password', 'token', 'authorization', 'secret'];
 const MAX_PAYLOAD_BYTES = 8 * 1024; // 8KB
 
-function redact(obj: unknown, seen = new WeakSet()): Record<string, unknown> | string {
+function redact(
+  obj: unknown,
+  seen = new WeakSet(),
+): Record<string, unknown> | string {
   if (obj === null || typeof obj !== 'object') {
     return obj as string;
   }
@@ -29,7 +32,10 @@ function redact(obj: unknown, seen = new WeakSet()): Record<string, unknown> | s
   seen.add(obj);
 
   if (Array.isArray(obj)) {
-    return obj.map((item) => redact(item, seen)) as unknown as Record<string, unknown>;
+    return obj.map((item) => redact(item, seen)) as unknown as Record<
+      string,
+      unknown
+    >;
   }
 
   const result: Record<string, unknown> = {};
@@ -48,7 +54,9 @@ function maskSensitive(value: unknown, key: string): string {
   if (lowerKey === 'email' || lowerKey === 'username') {
     const str = String(value);
     const at = str.indexOf('@');
-    return at > 0 ? `${str.slice(0, 2)}${'*'.repeat(at - 2)}@${str.slice(at)}` : str;
+    return at > 0
+      ? `${str.slice(0, 2)}${'*'.repeat(at - 2)}@${str.slice(at)}`
+      : str;
   }
   if (lowerKey.includes('credit') || lowerKey.includes('card')) {
     const str = String(value);
@@ -59,7 +67,8 @@ function maskSensitive(value: unknown, key: string): string {
 
 function shouldSkipBody(req: Request): boolean {
   const contentType = req.headers['content-type'] || '';
-  const length = req.headers['content-length'] ?? req.headers['x-content-length'];
+  const length =
+    req.headers['content-length'] ?? req.headers['x-content-length'];
   const lengthBytes = length ? Number(length) : 0;
 
   if (lengthBytes > MAX_PAYLOAD_BYTES) {
@@ -90,7 +99,11 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     // RequestId: propagate incoming or generate
     const headerId = req.headers['x-request-id'];
     let requestId: string;
-    if (typeof headerId === 'string' && headerId.length > 0 && headerId.length <= 64) {
+    if (
+      typeof headerId === 'string' &&
+      headerId.length > 0 &&
+      headerId.length <= 64
+    ) {
       requestId = headerId.replace(/[\r\n\t]/g, '').trim();
     } else {
       requestId = randomUUID();
@@ -101,8 +114,12 @@ export class RequestLoggingInterceptor implements NestInterceptor {
 
     try {
       if (!shouldSkipBody(req)) {
-        const body = req.body || {};
-        payloadRedacted = redact(JSON.parse(JSON.stringify(body))) as Record<string, unknown>;
+        const body = (req.body || {}) as Record<string, unknown>;
+        const parsed = JSON.parse(JSON.stringify(body)) as Record<
+          string,
+          unknown
+        >;
+        payloadRedacted = redact(parsed) as Record<string, unknown>;
       }
     } catch {
       // not JSON-serializable; skip logging body
@@ -143,31 +160,38 @@ export class RequestLoggingInterceptor implements NestInterceptor {
           responseSummary: result ? redact(result) : undefined,
         });
       }),
-      catchError((err) => {
-        const latencyNs = process.hrtime.bigint() - startTime;
-        const latencyMs = Number(latencyNs) / 1e6;
-        const res = context.switchToHttp().getResponse<Response>();
-        if (!res.getHeader('X-Request-Id')) {
-          res.setHeader('X-Request-Id', requestId);
-        }
-        this.logger.error({
-          level: 'error',
-          time: new Date().toISOString(),
-          requestId,
-          service: process.env.OTEL_SERVICE_NAME ?? 'my-pharmacy-auth-service',
-          msg: 'request failed',
-          method: req.method,
-          path: req.url,
-          statusCode: res.statusCode,
-          latency_ms: Number(latencyMs.toFixed(3)),
-          error: {
-            message: err.message,
-            name: err.constructor?.name,
-          },
-          stack: err.stack,
-        });
-        return throwError(() => err);
-      }),
+      catchError(
+        (err: {
+          message?: string;
+          constructor?: { name?: string };
+          stack?: string;
+        }) => {
+          const latencyNs = process.hrtime.bigint() - startTime;
+          const latencyMs = Number(latencyNs) / 1e6;
+          const res = context.switchToHttp().getResponse<Response>();
+          if (!res.getHeader('X-Request-Id')) {
+            res.setHeader('X-Request-Id', requestId);
+          }
+          this.logger.error({
+            level: 'error',
+            time: new Date().toISOString(),
+            requestId,
+            service:
+              process.env.OTEL_SERVICE_NAME ?? 'my-pharmacy-auth-service',
+            msg: 'request failed',
+            method: req.method,
+            path: req.url,
+            statusCode: res.statusCode,
+            latency_ms: Number(latencyMs.toFixed(3)),
+            error: {
+              message: err.message ?? 'Unknown error',
+              name: err.constructor?.name ?? 'Unknown',
+            },
+            stack: err.stack ?? 'No stack available',
+          });
+          return throwError(() => err);
+        },
+      ),
     );
   }
 }

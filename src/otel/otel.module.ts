@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { NodeSDK } from '@opentelemetry/sdk-node';

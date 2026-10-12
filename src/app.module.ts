@@ -30,6 +30,7 @@ import { OtelModule } from './otel/otel.module.js';
     EmailModule,
     RolesModule,
     PermissionsModule,
+    OtelModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
