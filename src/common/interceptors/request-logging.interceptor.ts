@@ -1,4 +1,4 @@
-import { PinoLogger } from 'nestjs-pino';
+import { Logger } from 'nestjs-pino';
 
 import {
   Injectable,
@@ -89,7 +89,7 @@ function shouldSkipBody(req: Request): boolean {
 export class RequestLoggingInterceptor implements NestInterceptor {
   constructor(
     private readonly reflector: Reflector,
-    private readonly logger: PinoLogger,
+    private readonly logger: Logger,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -125,7 +125,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
       // not JSON-serializable; skip logging body
     }
 
-    this.logger.info({
+    this.logger.log({
       level: 'info',
       time: new Date().toISOString(),
       requestId,
@@ -147,7 +147,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
         }
 
         const statusCode = res.statusCode;
-        this.logger.info({
+        this.logger.log({
           level: 'info',
           time: new Date().toISOString(),
           requestId,
